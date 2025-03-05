@@ -6,7 +6,14 @@ export class wanderer {
     baseX,
     baseY,
     speed,
-    { bound = true, frameSpeed = 2, waitTime = { low: 1, high: 3 } } = {}
+    {
+      bound = true,
+      frameSpeed = 2,
+      waitTime = { low: 0.1, high: 0.3 },
+      reAlingcheckSpeed = 4,
+      allowInner = true,
+      minimumWanderDistance = 5
+    } = {}
   ) {
     this.x = x;
     this.y = y;
@@ -24,6 +31,11 @@ export class wanderer {
     this.waitTime = waitTime;
     this.lastTime = Date.now();
     this.locked = false;
+    this.reAlingcheckSpeed = reAlingcheckSpeed;
+    this.allowInner = allowInner;
+    if (this.allowInner) {
+      this.minimumWanderDistance = minimumWanderDistance;
+    }
   }
   #newtarget() {
     this.locked = true;
@@ -31,10 +43,19 @@ export class wanderer {
       this.angle = this.#getRandomAngle();
       this.targetX = this.baseX;
       this.targetY = this.baseY;
-      this.targetX += this.wanderRadius * Math.cos(this.angle);
-      this.targetY += this.wanderRadius * Math.sin(this.angle);
+      if (!this.allowInner) {
+        this.targetX += this.wanderRadius * Math.cos(this.angle);
+        this.targetY += this.wanderRadius * Math.sin(this.angle);
+      } else if (this.allowInner) {
+        this.targetX +=
+          this.#getRandom(this.minimumWanderDistance, this.wanderRadius) *
+          Math.cos(this.angle);
+        this.targetY +=
+          this.#getRandom(this.minimumWanderDistance, this.wanderRadius) *
+          Math.sin(this.angle);
+      }
       this.locked = false;
-    },this.#getRandomTime());
+    }, this.#getRandomTime());
   }
   #getRandomAngle() {
     let min = -Math.PI;
@@ -46,6 +67,9 @@ export class wanderer {
     let max = this.waitTime.high;
     return (Math.random() * (max - min + 1) + min) * 1000;
   }
+  #getRandom(min, max) {
+    return Math.random() * (max - min + 1) + min;
+  }
   #move() {
     if (this.locked) return;
     this.x -= this.speed * Math.cos(this.angle);
@@ -54,7 +78,7 @@ export class wanderer {
   #isAtTarget() {
     this.reachedTarget =
       Math.abs(this.x - this.targetX) < this.speed * 7 &&
-      Math.abs(this.y - this.targetY) < this.speed * 7 && 
+      Math.abs(this.y - this.targetY) < this.speed * 7 &&
       !this.locked;
   }
   #reAling() {
@@ -68,7 +92,7 @@ export class wanderer {
       this.#newtarget();
     }
     this.frame += this.frameSpeed;
-    if (this.frame % 4) {
+    if (this.frame % this.reAlingcheckSpeed) {
       this.#reAling();
     }
   }
