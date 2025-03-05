@@ -6,13 +6,15 @@ export class wanderer {
     baseX,
     baseY,
     speed,
+    wanderType = "straight",
     {
       bound = true,
       frameSpeed = 2,
       waitTime = { low: 0.1, high: 0.3 },
       reAlingcheckSpeed = 4,
       allowInner = true,
-      minimumWanderDistance = 5
+      minimumWanderDistance = 5, 
+      arcSpeed=0.01
     } = {}
   ) {
     this.x = x;
@@ -32,9 +34,20 @@ export class wanderer {
     this.lastTime = Date.now();
     this.locked = false;
     this.reAlingcheckSpeed = reAlingcheckSpeed;
-    this.allowInner = allowInner;
-    if (this.allowInner) {
-      this.minimumWanderDistance = minimumWanderDistance;
+    this.wanderType = wanderType;
+    if (this.wanderType === "straight") {
+      this.allowInner = allowInner;
+      if (this.allowInner) {
+        this.minimumWanderDistance = minimumWanderDistance;
+      }
+    } else if (this.wanderType === "arc") {
+      this.allowInner = false;
+      this.arcStartAngle = 0
+      this.currentAngle = this.arcStartAngle;
+      this.arcEndAngle = 1    
+      this.arcSpeed = arcSpeed;
+    } else {
+      throw Error("wander type must be [arc] or [straight]")
     }
   }
   #newtarget() {
@@ -54,6 +67,9 @@ export class wanderer {
           this.#getRandom(this.minimumWanderDistance, this.wanderRadius) *
           Math.sin(this.angle);
       }
+      if (this.wanderType === "arc") {
+        this.arcEndAngle = this.angle;
+      }
       this.locked = false;
     }, this.#getRandomTime());
   }
@@ -62,7 +78,10 @@ export class wanderer {
     let max = Math.PI;
     return Math.random() * (max - min + 1) + min;
   }
-  #getRandomTime() {
+  #setArcStartAngle() {
+    this.arcStartAngle = Math.atan2(this.baseY-this.y,this.baseX-this.x)
+  }
+  #getRandomTime() { 
     let min = this.waitTime.low;
     let max = this.waitTime.high;
     return (Math.random() * (max - min + 1) + min) * 1000;
@@ -70,10 +89,25 @@ export class wanderer {
   #getRandom(min, max) {
     return Math.random() * (max - min + 1) + min;
   }
+  #moveAngle() {
+    if (Math.abs(this.currentAngle - this.arcEndAngle) < this.arcSpeed *2) {
+      this.#newtarget()
+    } else if (this.currentAngle < this.arcEndAngle) {
+      this.currentAngle += this.arcSpeed
+    } else if (this.currentAngle > this.arcEndAngle) {
+      this.currentAngle -= this.arcSpeed
+    }
+    console.log(this.currentAngle,this.arcEndAngle)
+  }
   #move() {
     if (this.locked) return;
-    this.x -= this.speed * Math.cos(this.angle);
-    this.y -= this.speed * Math.sin(this.angle);
+    if (this.wanderType === "straight") {
+      this.x -= this.speed * Math.cos(this.angle);
+      this.y -= this.speed * Math.sin(this.angle);
+    } else if (this.wanderType === "arc") {
+      this.x = this.baseX + this.wanderRadius * Math.cos(this.currentAngle);
+      this.y = this.baseY + this.wanderRadius * Math.sin(this.currentAngle);
+    }
   }
   #isAtTarget() {
     this.reachedTarget =
@@ -86,6 +120,9 @@ export class wanderer {
   }
   think() {
     this.#isAtTarget();
+    if (this.wanderType === "arc") {
+      this.#moveAngle();
+    }
     if (!this.reachedTarget) {
       this.#move();
     } else {
