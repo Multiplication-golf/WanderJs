@@ -2,6 +2,32 @@
 // works just like the old one on the surface level
 function newtarget(instancevars) {
   instancevars.locked = true;
+  if (!instancevars.crissCross) {
+    getTarget(instancevars)
+  }
+  console.log(instancevars.randomCrossInterval())
+  if (instancevars.crissCross) {
+    if (instancevars.randomCrossInterval()) {
+      instancevars.locked = true
+      instancevars.targetX = instancevars.baseX;
+      instancevars.targetY = instancevars.baseY;
+      instancevars.targetX +=
+        instancevars.wanderRadius * Math.cos(instancevars.angle);
+      instancevars.targetY +=
+        instancevars.wanderRadius * Math.sin(instancevars.angle);
+      while (!instancevars.reachedTarget) {
+        if (instancevars.reachedTarget) {
+          instancevars.locked = false;
+        }
+        isAtTarget(instancevars);
+        movestraight(instancevars)
+      }
+    } else {
+      getTarget(instancevars)
+    }
+  }
+}
+function getTarget(instancevars) {
   setTimeout(() => {
     instancevars.angle = getRandomAngle(instancevars);
     instancevars.targetX = instancevars.baseX;
@@ -71,7 +97,6 @@ function getRandom(min, max, instancevars) {
 }
 function moveAngle(instancevars) {
   if (instancevars.locked) return;
-  console.log(instancevars.currentAngle);
   if (
     Math.abs(instancevars.currentAngle - instancevars.arcEndAngle) <
     instancevars.arcSpeed * 1.01
@@ -82,7 +107,6 @@ function moveAngle(instancevars) {
   } else if (instancevars.currentAngle > instancevars.arcEndAngle) {
     instancevars.currentAngle -= instancevars.arcSpeed;
   }
-  console.log(instancevars.currentAngle);
 }
 function move(instancevars) {
   if (instancevars.locked) return;
@@ -98,6 +122,11 @@ function move(instancevars) {
       instancevars.wanderRadius * Math.sin(instancevars.currentAngle);
   }
 }
+function movestraight(instancevars) {
+  if (!instancevars.locked) return;
+  instancevars.x -= instancevars.speed * Math.cos(instancevars.angle);
+  instancevars.y -= instancevars.speed * Math.sin(instancevars.angle);
+}
 function isAtTarget(instancevars) {
   instancevars.reachedTarget =
     Math.abs(instancevars.x - instancevars.targetX) < instancevars.speed * 7 &&
@@ -109,6 +138,10 @@ function reAling(instancevars) {
     instancevars.y - instancevars.targetY,
     instancevars.x - instancevars.targetX
   );
+}
+function getRandomRole(end,start) {
+  console.log(Math.floor(getRandom(end,start)))
+  return (Math.floor(getRandom(end,start)) === 1)
 }
 
 function wanderer(
@@ -128,10 +161,12 @@ function wanderer(
     minimumWanderDistance = 5,
     arcSpeed = 0.01,
     AngleDiffrence = 50,
-    Direction = "positive"
+    Direction = "positive",
+    crissCross=false,
+    randomCrossInterval=getRandomRole(0,3)
   } = {}
 ) {
-  var instancevars = {};
+  var instancevars = {randomCrossInterval:() => {return getRandomRole(0,3)}};
   instancevars.x = x;
   instancevars.y = y;
   instancevars.wanderRadius = wanderRadius;
@@ -150,6 +185,7 @@ function wanderer(
   instancevars.locked = false;
   instancevars.reAlingcheckSpeed = reAlingcheckSpeed;
   instancevars.wanderType = wanderType;
+  instancevars.crissCross = crissCross;
   if (instancevars.wanderType === "straight") {
     instancevars.allowInner = allowInner;
     if (instancevars.allowInner) {
@@ -166,6 +202,7 @@ function wanderer(
   } else {
     throw Error("wander type must be [arc] or [straight]");
   }
+  console.log(instancevars)
   this.think = function () {
     isAtTarget(instancevars);
     if (instancevars.wanderType === "arc") {
